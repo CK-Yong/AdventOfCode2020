@@ -76,6 +76,17 @@ func Test_should_be_invalid_V2_passports(test *testing.T){
     }
 }
 
+func Test_should_be_invalid_height(test *testing.T){
+    passport := new(Passport)
+    passport.Init("hgt:170")
+
+    result := passport.hasValidHeight()
+
+    if result == true {
+        test.Errorf("Expected invalid height")
+    }
+}
+
 func Test_should_be_invalid_hair_color(test *testing.T){
     passport := new(Passport)
     passport.Init("hcl:#123abz")
@@ -84,5 +95,27 @@ func Test_should_be_invalid_hair_color(test *testing.T){
 
     if result == true {
         test.Errorf("Expected invalid hair color")
+    }
+}
+
+func Test_should_be_invalid_eye_color(test *testing.T){
+    passport := new(Passport)
+    passport.Init("ecl:zzz")
+
+    result := passport.hasValidEyeColor()
+
+    if result == true {
+        test.Errorf("Expected invalid eye color")
+    }
+}
+
+func Test_should_be_valid_pid(test *testing.T){
+    passport := new(Passport)
+    passport.Init("pid:0123456789")
+
+    result := passport.hasValidPassportId()
+
+    if result == true {
+        test.Errorf("Expected invalid passport ID")
     }
 }

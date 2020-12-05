@@ -84,29 +84,35 @@ func (p Passport) IsValidV2() bool {
 }
 
 func (p Passport) hasValidHeight() bool {
-    height := p.innerMap["hgt"]
+    height, exists := p.innerMap["hgt"]
+    if !exists {
+        return false
+    }
 
     if strings.Contains(height, "in") {
         val := strings.Replace(height, "in", "", -1)
         intVal, _ := strconv.Atoi(val)
-        if intVal < 59 || intVal > 76 {
-            return false
+        if intVal >= 59 && intVal <= 76 {
+            return true
         }
     }
 
     if strings.Contains(height, "cm") {
         val := strings.Replace(height, "cm", "", -1)
         intVal, _ := strconv.Atoi(val)
-        if intVal < 150 || intVal > 193 {
-            return false
+        if intVal >= 150 && intVal <= 193 {
+            return true
         }
     }
 
-    return true
+    return false
 }
 
-func (p *Passport) hasValidHairColor() bool {
-    hcl := p.innerMap["hcl"]
+func (p Passport) hasValidHairColor() bool {
+    hcl, exists := p.innerMap["hcl"]
+    if !exists {
+        return false
+    }
 
     if !strings.HasPrefix(hcl, "#") || len(hcl) != 7 {
         return false
@@ -122,9 +128,12 @@ func (p *Passport) hasValidHairColor() bool {
     return true
 }
 
-func (p *Passport) hasValidEyeColor() bool {
+func (p Passport) hasValidEyeColor() bool {
     validEyeColors := strings.Split("amb blu brn gry grn hzl oth", " ")
-    eyeColor := p.innerMap["ecl"]
+    eyeColor, exists := p.innerMap["ecl"]
+    if !exists {
+        return false
+    }
     for _, validColor := range validEyeColors {
         if eyeColor == validColor {
             return true
@@ -133,8 +142,11 @@ func (p *Passport) hasValidEyeColor() bool {
     return false
 }
 
-func (p *Passport) hasValidPassportId() bool {
-    passportId := p.innerMap["pid"]
+func (p Passport) hasValidPassportId() bool {
+    passportId, exists := p.innerMap["pid"]
+    if !exists {
+        return false
+    }
     if len(passportId) != 9 {
         return false
     }
