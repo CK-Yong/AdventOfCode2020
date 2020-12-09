@@ -2,6 +2,7 @@ package main
 
 import (
     "fmt"
+    "math"
     "strconv"
     "strings"
 )
@@ -14,7 +15,11 @@ func main() {
     }
 
     weakness := sequence.FindWeakness()
-    fmt.Printf("Part 1: Weak number is %v.", weakness)
+    fmt.Printf("Part 1: Weak number is %v.\n", weakness)
+
+    slice := sequence.FindContiguousSet(weakness)
+    min,max := FindMinMax(slice)
+    fmt.Printf("Part 2: Sum of min-max is %v.", min + max)
 }
 
 func ParseInput(input string) []int {
@@ -55,6 +60,29 @@ func (s Sequence) FindWeakness() int {
     return -1
 }
 
+func (s Sequence) FindContiguousSet(value int) []int {
+    var slice []int
+    for i := range s.input {
+        for j := i; j < len(s.input); j++ {
+            slice = s.input[i:j]
+            sum := Sum(slice)
+            if sum == value {
+                return slice
+            }
+        }
+    }
+
+    return nil
+}
+
+func Sum(input []int) int {
+    sum := 0
+    for _, number := range input {
+        sum += number
+    }
+    return sum
+}
+
 func Contains(input []int, value int) bool {
     for _, x := range input {
         if x == value {
@@ -62,4 +90,20 @@ func Contains(input []int, value int) bool {
         }
     }
     return false
+}
+
+func FindMinMax(slice []int) (int, int) {
+    max := 0
+    min := math.MaxInt32
+
+    for _, number := range slice {
+        if min > number {
+            min = number
+        }
+        if max < number {
+            max = number
+        }
+    }
+
+    return min, max
 }

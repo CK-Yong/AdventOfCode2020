@@ -1,6 +1,7 @@
 package main
 
 import (
+    "reflect"
     "testing"
 )
 
@@ -9,7 +10,7 @@ func Test_should_find_first_invalid_number(test *testing.T) {
     converted := ParseInput(input)
 
     sequence := Sequence{converted, 5}
-    weakness, _, _ := sequence.FindWeakness()
+    weakness := sequence.FindWeakness()
 
     if weakness != 127 {
         test.Errorf("Expected weakness number to be 127. Got %v", weakness)
@@ -21,9 +22,20 @@ func Test_should_find_the_two_parts_of_the_weak_number(test *testing.T) {
     converted := ParseInput(input)
 
     sequence := Sequence{converted, 5}
-    weakness, _, _ := sequence.FindWeakness()
+    slice := sequence.FindContiguousSet(127)
 
-    if weakness != 127 {
-        test.Errorf("Expected weakness number to be 127. Got %v", weakness)
+    expected := []int{15, 25, 47, 40}
+    if !reflect.DeepEqual(slice, expected) {
+        test.Errorf("Expected contiguous set to be [15, 25, 47, 40]. Got %v", slice)
+    }
+}
+
+func Test_should_find_the_two_boundaries(test *testing.T) {
+    slice := []int{15, 25, 47, 40}
+
+    min, max := FindMinMax(slice)
+
+    if min != 15 || max != 47 {
+        test.Errorf("Expected contiguous set to be 15 and 47. Got %v and %v", min, max)
     }
 }
