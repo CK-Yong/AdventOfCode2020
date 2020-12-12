@@ -6,19 +6,26 @@ import (
 	"strings"
 )
 
-func main()  {
+func main() {
 	parsed := strings.Split(PuzzleInput, "\n")
 
-	room := ParseRoom(parsed)
+	room := ParseRoom(parsed, 4)
 
 	room.Update(1)
-
 	for !room.HasStabilized() {
 		room.Update(1)
 	}
 
 	occupiedSeats := room.CountOccupiedSeats()
 	fmt.Printf("Part 1: Found %v occupied seats.", occupiedSeats)
+
+	room = ParseRoom(parsed, 5)
+	room.UpdateWithLookaround(1)
+	for !room.HasStabilized(){
+		room.UpdateWithLookaround(1)
+	}
+	occupiedSeats = room.CountOccupiedSeats()
+	fmt.Printf("Part 2: Found %v occupied seats.", occupiedSeats)
 }
 
 type Cell struct {
@@ -27,7 +34,7 @@ type Cell struct {
 }
 
 // Adjacent cell needs to be added from top left corner, going clockwise
-func (cell *Cell) Update(adjacentCells []Cell) {
+func (cell *Cell) Update(adjacentCells []Cell, leniency int) {
 	if !cell.IsSeat {
 		return
 	}
@@ -37,18 +44,47 @@ func (cell *Cell) Update(adjacentCells []Cell) {
 		return
 	}
 
-	if cell.Occupied && CountOccupiedSeats(adjacentCells) >= 4 {
+	if cell.Occupied && CountOccupiedSeats(adjacentCells) >= leniency {
 		cell.Occupied = false
 	}
 }
 
-func (cell *Cell) LookAround(hall Hall){
+func (cell *Cell) LookAround(hall Hall) []Cell {
+	cells := make([]Cell, 0)
+	for i := -1; i < 2; i++ {
+		for j := -1; j < 2; j++ {
+			if i == 0 && j ==0 {
+				continue
+			}
+			result := cell.LookAt(hall, i, j)
+			if result.IsSeat {
+				cells = append(cells, result)
+			}
+		}
+	}
+	return cells
+}
 
+func (cell *Cell) LookAt(hall Hall, rowOffset int, colOffset int) Cell {
+	if cell.Row+rowOffset < 0 || cell.Row+rowOffset >= len(hall.previousState) {
+		return Cell{}
+	}
+
+	if cell.Column+colOffset < 0 || cell.Column+colOffset >= len(hall.previousState[cell.Row]) {
+		return Cell{}
+	}
+
+	target := hall.previousState[cell.Row+rowOffset][cell.Column+colOffset]
+	if target.IsSeat {
+		return target
+	}
+	return target.LookAt(hall, rowOffset, colOffset)
 }
 
 type Hall struct {
 	CurrentState  [][]Cell
 	previousState [][]Cell
+	Leniency      int
 }
 
 func (hall *Hall) Update(times int) {
@@ -57,7 +93,19 @@ func (hall *Hall) Update(times int) {
 		for i := range hall.CurrentState {
 			for j := range hall.CurrentState[i] {
 				cells := hall.GetAdjacentCellsFor(i, j)
-				hall.CurrentState[i][j].Update(cells)
+				hall.CurrentState[i][j].Update(cells, hall.Leniency)
+			}
+		}
+	}
+}
+
+func (hall Hall) UpdateWithLookaround(times int) {
+	for i := 0; i < times; i++ {
+		hall.previousState = Clone(hall.CurrentState)
+		for i := range hall.CurrentState {
+			for j := range hall.CurrentState[i] {
+				cells := hall.CurrentState[i][j].LookAround(hall)
+				hall.CurrentState[i][j].Update(cells, hall.Leniency)
 			}
 		}
 	}
@@ -95,9 +143,9 @@ func (hall Hall) GetAdjacentCellsFor(row int, column int) []Cell {
 }
 
 func (hall Hall) HasStabilized() bool {
-	for i := range hall.CurrentState{
-		for j := range hall.CurrentState[i]{
-			if !cmp.Equal(hall.CurrentState[i][j], hall.previousState[i][j]){
+	for i := range hall.CurrentState {
+		for j := range hall.CurrentState[i] {
+			if !cmp.Equal(hall.CurrentState[i][j], hall.previousState[i][j]) {
 				return false
 			}
 		}
@@ -113,7 +161,7 @@ func CreateCell(input rune, row, column int) Cell {
 	}
 }
 
-func ParseRoom(parsed []string) Hall {
+func ParseRoom(parsed []string, leniency int) Hall {
 	cells := make([][]Cell, 0)
 	for i, rowInput := range parsed {
 		cells = append(cells, make([]Cell, 0))
@@ -122,7 +170,7 @@ func ParseRoom(parsed []string) Hall {
 		}
 	}
 
-	return Hall{Clone(cells), Clone(cells)}
+	return Hall{Clone(cells), Clone(cells), leniency}
 }
 
 func CountOccupiedSeats(adjacentCells []Cell) int {
