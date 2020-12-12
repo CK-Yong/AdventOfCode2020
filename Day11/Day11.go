@@ -17,10 +17,11 @@ func main() {
 	}
 
 	occupiedSeats := room.CountOccupiedSeats()
-	fmt.Printf("Part 1: Found %v occupied seats.", occupiedSeats)
+	fmt.Printf("Part 1: Found %v occupied seats.\n", occupiedSeats)
 
 	room = ParseRoom(parsed, 5)
 	room.UpdateWithLookaround(1)
+
 	for !room.HasStabilized(){
 		room.UpdateWithLookaround(1)
 	}
@@ -49,7 +50,7 @@ func (cell *Cell) Update(adjacentCells []Cell, leniency int) {
 	}
 }
 
-func (cell *Cell) LookAround(hall Hall) []Cell {
+func (cell *Cell) LookAround(hall [][]Cell) []Cell {
 	cells := make([]Cell, 0)
 	for i := -1; i < 2; i++ {
 		for j := -1; j < 2; j++ {
@@ -65,16 +66,16 @@ func (cell *Cell) LookAround(hall Hall) []Cell {
 	return cells
 }
 
-func (cell *Cell) LookAt(hall Hall, rowOffset int, colOffset int) Cell {
-	if cell.Row+rowOffset < 0 || cell.Row+rowOffset >= len(hall.previousState) {
-		return Cell{}
+func (cell *Cell) LookAt(hall [][]Cell, rowOffset int, colOffset int) Cell {
+	if cell.Row+rowOffset < 0 || cell.Row+rowOffset >= len(hall) {
+		return Cell{Row: -1, Column: -1}
 	}
 
-	if cell.Column+colOffset < 0 || cell.Column+colOffset >= len(hall.previousState[cell.Row]) {
-		return Cell{}
+	if cell.Column+colOffset < 0 || cell.Column+colOffset >= len(hall[cell.Row]) {
+		return Cell{Row: -1, Column: -1}
 	}
 
-	target := hall.previousState[cell.Row+rowOffset][cell.Column+colOffset]
+	target := hall[cell.Row+rowOffset][cell.Column+colOffset]
 	if target.IsSeat {
 		return target
 	}
@@ -99,12 +100,12 @@ func (hall *Hall) Update(times int) {
 	}
 }
 
-func (hall Hall) UpdateWithLookaround(times int) {
+func (hall *Hall) UpdateWithLookaround(times int) {
 	for i := 0; i < times; i++ {
 		hall.previousState = Clone(hall.CurrentState)
 		for i := range hall.CurrentState {
 			for j := range hall.CurrentState[i] {
-				cells := hall.CurrentState[i][j].LookAround(hall)
+				cells := hall.CurrentState[i][j].LookAround(hall.previousState)
 				hall.CurrentState[i][j].Update(cells, hall.Leniency)
 			}
 		}
@@ -160,6 +161,55 @@ func CreateCell(input rune, row, column int) Cell {
 		return Cell{IsSeat: true, Row: row, Column: column}
 	}
 }
+
+func ToString(room Hall) string {
+	str := ""
+	for _, row := range room.CurrentState {
+		for _, seat := range row {
+			if !seat.IsSeat {
+				str += "."
+				continue
+			}
+
+			if seat.Occupied {
+				str += "#"
+				continue
+			}
+
+			if !seat.Occupied {
+				str += "L"
+				continue
+			}
+		}
+		str += "\n"
+	}
+	return str
+}
+
+func PrevToString(room Hall) string {
+	str := ""
+	for _, row := range room.previousState {
+		for _, seat := range row {
+			if !seat.IsSeat {
+				str += "."
+				continue
+			}
+
+			if seat.Occupied {
+				str += "#"
+				continue
+			}
+
+			if !seat.Occupied {
+				str += "L"
+				continue
+			}
+		}
+		str += "\n"
+	}
+	return str
+}
+
 
 func ParseRoom(parsed []string, leniency int) Hall {
 	cells := make([][]Cell, 0)

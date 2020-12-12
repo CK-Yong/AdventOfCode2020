@@ -44,7 +44,7 @@ func Test_should_find_8_seats_when_looking_around(test *testing.T){
 	room := ParseRoom(parsed,4)
 
 	seat := room.CurrentState[4][3]
-	cells := seat.LookAround(room)
+	cells := seat.LookAround(room.CurrentState)
 
 	if len(cells) != 8{
 		test.Errorf("Expected 8 cells to be found. Got %v", len(cells))
@@ -69,7 +69,7 @@ func Test_should_find_0_seats_when_looking_around(test *testing.T) {
 	room := ParseRoom(parsed, 4)
 
 	seat := room.CurrentState[3][3]
-	cells := seat.LookAround(room)
+	cells := seat.LookAround(room.CurrentState)
 
 	if len(cells) != 0 {
 		test.Errorf("Expected 0 cells to be found. Got %v", len(cells))
@@ -107,7 +107,7 @@ func Test_should_be_partially_occupied_after_2_rounds(test *testing.T) {
 	var input = "L.LL.LL.LL\nLLLLLLL.LL\nL.L.L..L..\nLLLL.LL.LL\nL.LL.LL.LL\nL.LLLLL.LL\n..L.L.....\nLLLLLLLLLL\nL.LLLLLL.L\nL.LLLLL.LL"
 	parsed := strings.Split(input, "\n")
 
-	room := ParseRoom(parsed,4)
+	room := ParseRoom(parsed,5)
 
 	room.UpdateWithLookaround(2)
 	actual := ToString(room)
@@ -119,26 +119,18 @@ func Test_should_be_partially_occupied_after_2_rounds(test *testing.T) {
 	}
 }
 
-func ToString(room Hall) string {
-	str := ""
-	for _, row := range room.CurrentState {
-		for _, seat := range row {
-			if !seat.IsSeat {
-				str += "."
-				continue
-			}
+func Test_should_be_partially_occupied_after_3_rounds(test *testing.T) {
+	var input = "L.LL.LL.LL\nLLLLLLL.LL\nL.L.L..L..\nLLLL.LL.LL\nL.LL.LL.LL\nL.LLLLL.LL\n..L.L.....\nLLLLLLLLLL\nL.LLLLLL.L\nL.LLLLL.LL"
+	parsed := strings.Split(input, "\n")
 
-			if seat.Occupied {
-				str += "#"
-				continue
-			}
+	room := ParseRoom(parsed,5)
 
-			if !seat.Occupied {
-				str += "L"
-				continue
-			}
-		}
-		str += "\n"
+	room.UpdateWithLookaround(3)
+	actual := ToString(room)
+
+	expected := "#.L#.##.L#\n#L#####.LL\nL.#.#..#..\n##L#.##.##\n#.##.#L.##\n#.#####.#L\n..#.#.....\nLLL####LL#\n#.L#####.L\n#.L####.L#\n"
+
+	if actual != expected {
+		test.Errorf("Expected value to equal: \n%v\n\n Got:\n%v", expected, actual)
 	}
-	return str
 }
