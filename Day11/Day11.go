@@ -23,32 +23,27 @@ func main()  {
 
 type Cell struct {
 	Occupied, IsSeat bool
+	Row, Column      int
 }
 
 // Adjacent cell needs to be added from top left corner, going clockwise
-func (s *Cell) Update(adjacentCells []Cell) {
-	if !s.IsSeat {
+func (cell *Cell) Update(adjacentCells []Cell) {
+	if !cell.IsSeat {
 		return
 	}
 
-	if !s.Occupied && CountOccupiedSeats(adjacentCells) == 0 {
-		s.Occupied = true
+	if !cell.Occupied && CountOccupiedSeats(adjacentCells) == 0 {
+		cell.Occupied = true
 		return
 	}
 
-	if s.Occupied && CountOccupiedSeats(adjacentCells) >= 4 {
-		s.Occupied = false
+	if cell.Occupied && CountOccupiedSeats(adjacentCells) >= 4 {
+		cell.Occupied = false
 	}
 }
 
-func CountOccupiedSeats(adjacentCells []Cell) int {
-	count := 0
-	for _, val := range adjacentCells {
-		if val.IsSeat && val.Occupied {
-			count++
-		}
-	}
-	return count
+func (cell *Cell) LookAround(hall Hall){
+
 }
 
 type Hall struct {
@@ -57,8 +52,8 @@ type Hall struct {
 }
 
 func (hall *Hall) Update(times int) {
-	hall.previousState = Clone(hall.CurrentState)
 	for i := 0; i < times; i++ {
+		hall.previousState = Clone(hall.CurrentState)
 		for i := range hall.CurrentState {
 			for j := range hall.CurrentState[i] {
 				cells := hall.GetAdjacentCellsFor(i, j)
@@ -99,35 +94,6 @@ func (hall Hall) GetAdjacentCellsFor(row int, column int) []Cell {
 	return adjacent
 }
 
-func CreateCell(input rune) Cell {
-	if input == '.' {
-		return Cell{IsSeat: false}
-	} else {
-		return Cell{IsSeat: true}
-	}
-}
-
-func ParseRoom(parsed []string) Hall {
-	cells := make([][]Cell, 0)
-	for i, rowInput := range parsed {
-		cells = append(cells, make([]Cell, 0))
-		for _, cellInput := range rowInput {
-			cells[i] = append(cells[i], CreateCell(cellInput))
-		}
-	}
-
-	return Hall{Clone(cells), Clone(cells)}
-}
-
-func Clone(cells [][]Cell) [][]Cell {
-	clone := make([][]Cell, len(cells))
-	for i := range cells {
-		clone[i] = make([]Cell, len(cells[i]))
-		copy(clone[i], cells[i])
-	}
-	return clone
-}
-
 func (hall Hall) HasStabilized() bool {
 	for i := range hall.CurrentState{
 		for j := range hall.CurrentState[i]{
@@ -137,4 +103,43 @@ func (hall Hall) HasStabilized() bool {
 		}
 	}
 	return true
+}
+
+func CreateCell(input rune, row, column int) Cell {
+	if input == '.' {
+		return Cell{IsSeat: false, Row: row, Column: column}
+	} else {
+		return Cell{IsSeat: true, Row: row, Column: column}
+	}
+}
+
+func ParseRoom(parsed []string) Hall {
+	cells := make([][]Cell, 0)
+	for i, rowInput := range parsed {
+		cells = append(cells, make([]Cell, 0))
+		for j, cellInput := range rowInput {
+			cells[i] = append(cells[i], CreateCell(cellInput, i, j))
+		}
+	}
+
+	return Hall{Clone(cells), Clone(cells)}
+}
+
+func CountOccupiedSeats(adjacentCells []Cell) int {
+	count := 0
+	for _, val := range adjacentCells {
+		if val.IsSeat && val.Occupied {
+			count++
+		}
+	}
+	return count
+}
+
+func Clone(cells [][]Cell) [][]Cell {
+	clone := make([][]Cell, len(cells))
+	for i := range cells {
+		clone[i] = make([]Cell, len(cells[i]))
+		copy(clone[i], cells[i])
+	}
+	return clone
 }

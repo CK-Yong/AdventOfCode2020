@@ -12,25 +12,12 @@ func Test_should_all_be_occupied_after_1_round(test *testing.T) {
 	room := ParseRoom(parsed)
 
 	room.Update(1)
+	actual := ToString(room)
 
-	for _, row := range room.CurrentState {
-		for _, seat := range row {
-			if !seat.IsSeat {
-				print(".")
-				continue
-			}
+	expected := "#.##.##.##\n#######.##\n#.#.#..#..\n####.##.##\n#.##.##.##\n#.#####.##\n..#.#.....\n##########\n#.######.#\n#.#####.##\n"
 
-			if seat.Occupied {
-				print("#")
-				continue
-			}
-
-			if !seat.Occupied {
-				print("L")
-				continue
-			}
-		}
-		println()
+	if actual != expected {
+		test.Errorf("Expected value to equal: \n%v\n\n Got:\n%v", expected, actual)
 	}
 }
 
@@ -41,24 +28,35 @@ func Test_should_partially_be_occupied_after_2_rounds(test *testing.T) {
 	room := ParseRoom(parsed)
 
 	room.Update(2)
+	actual := ToString(room)
 
+	expected := "#.LL.L#.##\n#LLLLLL.L#\nL.L.L..L..\n#LLL.LL.L#\n#.LL.LL.LL\n#.LLLL#.##\n..L.L.....\n#LLLLLLLL#\n#.LLLLLL.L\n#.#LLLL.##\n"
+
+	if actual != expected {
+		test.Errorf("Expected value to equal: \n%v\n\n Got:\n%v", expected, actual)
+	}
+}
+
+func ToString(room Hall) string {
+	str := ""
 	for _, row := range room.CurrentState {
 		for _, seat := range row {
 			if !seat.IsSeat {
-				print(".")
+				str += "."
 				continue
 			}
 
 			if seat.Occupied {
-				print("#")
+				str += "#"
 				continue
 			}
 
 			if !seat.Occupied {
-				print("L")
+				str += "L"
 				continue
 			}
 		}
-		println()
+		str += "\n"
 	}
+	return str
 }
