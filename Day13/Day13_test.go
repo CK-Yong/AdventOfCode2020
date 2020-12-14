@@ -44,27 +44,53 @@ func Test_should_get_earliest_timestamp_at_which_buses_sync(test *testing.T) {
 }
 
 func GetSyncedTimestamp(buses []Bus) int64 {
+	ts := searchTimeStamp(0, 0, buses)
+	commonMultiplier := GetCommonMultiplier(buses)
 
-	return searchTimeStamp(0, 0, buses)
-
+	for ts - int64(commonMultiplier) > 0 {
+		ts -= int64(commonMultiplier)
+	}
+	return ts
 }
 
-func searchTimeStamp(index int64, timestamp int64, buses []Bus) int64 {
+func GetCommonMultiplier(buses []Bus) int {
+	aggregator := 1
+	for _, bus := range buses{
+		if bus.Interval < 0 {
+			continue
+		}
+		aggregator *= bus.Interval
+	}
+	return aggregator
+}
+
+func searchTimeStamp(index int, timestamp int64, buses []Bus) int64 {
+	if index == len(buses) {
+		return 0
+	}
+
 	bus := buses[index]
-	if bus.Interval == -1 {
-		return searchTimeStamp(index + 1, timestamp, buses)
+	interval := int64(bus.Interval)
+
+	if bus.Interval < 0 {
+		return searchTimeStamp(index+1, timestamp, buses)
 	}
 
-	remainder := (timestamp - index) % int64(bus.Interval)
-
-	if remainder == 0 && timestamp != 0 {
-		return timestamp
+	newTimestamp := int64(1)
+	for i, bus := range buses {
+		if i == index || bus.Interval < 0 {
+			continue
+		}
+		newTimestamp *= int64(bus.Interval)
 	}
 
-	newTimestamp := index + int64(bus.Interval)
-	for newTimestamp < timestamp {
-		newTimestamp += int64(bus.Interval)
+	remainder := newTimestamp % interval
+	remainderInterval := remainder
+	i := int64(0)
+	for remainder % interval != interval - 1 {
+		i++
+		remainder = remainderInterval * i
 	}
 
-	return searchTimeStamp(index - 1, newTimestamp, buses)
+	return (newTimestamp * i) + searchTimeStamp(index+1, newTimestamp, buses)
 }
