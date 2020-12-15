@@ -11,9 +11,12 @@ var PuzzleInput = "13,16,0,12,15,1"
 func main() {
 	parsed := strings.Split(PuzzleInput, ",")
 	game := CreateGame(parsed)
-	result := game.PlayUntil(2020)
 
-	fmt.Printf("Part 1: 2020th number is %v", result)
+	result := game.PlayUntil(2020)
+	fmt.Printf("Part 1: 2020th number is %v\n", result)
+
+	result2 := game.PlayUntil(30000000)
+	fmt.Printf("Part 2: 2020th number is %v", result2)
 }
 
 type Game struct {
@@ -29,25 +32,26 @@ func CreateGame(input []string) Game {
 	return game
 }
 
-func (game *Game) PlayUntil(input int) int {
-	for i := 0; i < input; i++ {
-		if i >= len(game.Numbers) {
-			game.Numbers = append(game.Numbers, game.GetAge(game.Numbers[i-1], i))
-		}
+
+func (game Game) PlayUntil(input int) int {
+	cache := make(map[int]int, 0)
+
+	for i, val := range game.Numbers {
+		cache[val] = i
 	}
 
-	return game.Numbers[input-1]
-}
+	lastVal := game.Numbers[len(game.Numbers) - 1]
+	for i := len(game.Numbers); i < input; i++ {
+		lastSeen, ok := cache[lastVal]
 
-var cache = make(map[int]int, 0)
-
-func (game *Game) GetAge(value int, index int) int {
-	for i := len(game.Numbers) - 2; i >= 0; i-- {
-		if game.Numbers[i] == value {
-			age := len(game.Numbers) - i - 1
-			return age
+		value := 0
+		if ok {
+			value = i - 1 - lastSeen
 		}
-	}
-	return 0
-}
 
+		cache[lastVal] = i - 1
+		lastVal = value
+	}
+
+	return lastVal
+}
