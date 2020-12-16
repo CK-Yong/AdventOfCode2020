@@ -27,15 +27,11 @@ func Test_should_result_in_row_class_seat(test *testing.T) {
 	ruleInput := "class: 0-1 or 4-19\nrow: 0-5 or 8-19\nseat: 0-13 or 16-19"
 	rules := ParseRules(strings.Split(ruleInput, "\n"))
 
-	labels := SortLabels(tickets, rules, len(tickets[0].Numbers))
-
-	names := make([]string, 3)
-	for i, label := range labels {
-		names[i] = label.name
-	}
+	names := SortLabels(tickets, rules, len(tickets[0].Numbers))
 
 	expected := []string{"row", "class", "seat"}
 	if !reflect.DeepEqual(names, expected) {
-		test.Errorf("Expected error rate to be %v. Got %v", expected, labels)
+		test.Errorf("Expected error rate to be %v. Got %v", expected, names)
 	}
 }
+

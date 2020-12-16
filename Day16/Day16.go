@@ -13,18 +13,25 @@ func main() {
 	result := ScanForErrors(tickets, rules)
 	fmt.Printf("Part 1: Ticket error rate is %v\n", result)
 
-	myTicket := ParseTickets([]string{YourTicket})
+	myTicket := ParseTickets([]string{YourTicket})[0]
 	numberOfIds := len(tickets[0].Numbers)
 	validTickets := RemoveErrors(tickets, rules)
-	validTickets = append(validTickets, myTicket[0])
-	labels := SortLabels(validTickets, rules, numberOfIds)
-	names := make([]string, numberOfIds)
+	validTickets = append(validTickets, myTicket)
+	names := SortLabels(validTickets, rules, numberOfIds)
 
-	for i, label := range labels {
-		names[i] = label.name
+	departureFields := make([]int, 0)
+	for i, str := range names {
+		if strings.HasPrefix(str, "departure"){
+			departureFields = append(departureFields, i)
+		}
 	}
 
-	fmt.Printf("Part 2: Ticket order is %v", names)
+	multiple := 1
+	for _, index := range departureFields {
+		multiple *= myTicket.Numbers[index]
+	}
+
+	fmt.Printf("Part 2: Multiple of six values is %v", multiple)
 
 }
 
@@ -147,8 +154,65 @@ func ParseTickets(input []string) []Ticket {
 	return tickets
 }
 
-func SortLabels(tickets []Ticket, rules []Rule, numbersPerTicket int) []Rule {
-	result := make([]Rule, len(rules))
+func SortLabels(tickets []Ticket, rules []Rule, numbersPerTicket int) []string {
+	possbilityMap := GetAllPossibilities(tickets, rules, numbersPerTicket)
+
+	for !finishedFiltering(possbilityMap){
+		confirmedFields := GetConfirmedFields(possbilityMap)
+		possbilityMap = Filter(possbilityMap, confirmedFields)
+	}
+
+	result := make([]string, 0)
+	for _, possibilities := range possbilityMap {
+		result = append(result, GetSingle(possibilities))
+	}
+	return result
+}
+
+func Filter(possbilityMap []map[string]bool, fields []string) []map[string]bool {
+	for _, possibilities := range possbilityMap {
+		for _, field := range fields {
+			if len(possibilities) == 1 {
+				continue
+			}
+			delete(possibilities, field)
+		}
+	}
+	return possbilityMap
+}
+
+func GetConfirmedFields(possbilityMap []map[string]bool) []string {
+	result := make([]string, 0)
+	for _, possibilities := range possbilityMap {
+		if len(possibilities) == 1 {
+			result = append(result, GetSingle(possibilities))
+		}
+	}
+	return result
+}
+
+func finishedFiltering(possbilityMap []map[string]bool) bool {
+	for _, possibilities := range possbilityMap {
+		if len(possibilities) != 1 {
+			return false
+		}
+	}
+	return true
+}
+
+func GetSingle(possibilities map[string]bool) string {
+	for field := range possibilities {
+		return field
+	}
+	return ""
+}
+
+func GetAllPossibilities(tickets []Ticket, rules []Rule, numbersPerTicket int) []map[string]bool {
+	possibilities := make([]map[string]bool, len(rules))
+	for i := range possibilities {
+		possibilities[i] = make(map[string]bool,0)
+	}
+
 	for _, rule := range rules {
 		for j := 0; j < numbersPerTicket; j++ {
 			isValidRule := false
@@ -157,16 +221,14 @@ func SortLabels(tickets []Ticket, rules []Rule, numbersPerTicket int) []Rule {
 				if !isValidNumber(number, rule) {
 					isValidRule = false
 					break
-				} else {
-					isValidRule = true
 				}
+				isValidRule = true
 			}
 
 			if isValidRule {
-				result[j] = rule
-				break
+				possibilities[j][rule.name] = true
 			}
 		}
 	}
-	return result
+	return possibilities
 }
