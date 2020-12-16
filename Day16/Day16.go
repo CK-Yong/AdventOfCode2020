@@ -13,8 +13,10 @@ func main() {
 	result := ScanForErrors(tickets, rules)
 	fmt.Printf("Part 1: Ticket error rate is %v\n", result)
 
+	myTicket := ParseTickets([]string{YourTicket})
 	numberOfIds := len(tickets[0].Numbers)
 	validTickets := RemoveErrors(tickets, rules)
+	validTickets = append(validTickets, myTicket[0])
 	labels := SortLabels(validTickets, rules, numberOfIds)
 	names := make([]string, numberOfIds)
 
