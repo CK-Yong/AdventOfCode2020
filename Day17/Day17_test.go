@@ -1,114 +1,119 @@
 package main
 
 import (
+	"math"
 	"strings"
 	"testing"
 )
 
 type Cube struct {
-	X, Y, Z  int
-	isActive bool
+	X, Y, Z int
 }
 
 type Grid struct {
-	Cubes     [][][]Cube
-	prevState [][][]Cube
+	ActiveCubes map[Cube]struct{}
+	prevState   map[Cube]struct{}
 }
 
 func CreateGrid(input [][]string) Grid {
 	// coordinates will be in z, y, x
-	cubes := make([][][]Cube, 1)
-	cubes[0] = make([][]Cube, len(input))
+	cubes := make(map[Cube]struct{}, 0)
 	for i, row := range input {
-		cubes[0][i] = make([]Cube, len(row))
 		for j, col := range row {
-			cubes[0][i][j] = Cube{j, i, 0, col == "#"}
+			if col == "#" {
+				cube := Cube{j, i, 0}
+				cubes[cube] = struct{}{}
+			}
 		}
 	}
 
 	return Grid{cubes, clone(cubes)}
 }
 
-func clone(cubes [][][]Cube) [][][]Cube {
-	prevState := make([][][]Cube, len(cubes))
-	prevState[0] = make([][]Cube, len(cubes[0][0]))
-
-	for z, zPlane := range cubes {
-		prevState[z] = make([][]Cube, len(cubes[0][0]))
-		for y := range zPlane {
-			prevState[z][y] = make([]Cube, len(cubes[0][0]))
-			copy(prevState[z][y], cubes[z][y])
-		}
+func clone(cubes map[Cube]struct{}) map[Cube]struct{} {
+	prevState := make(map[Cube]struct{}, len(cubes))
+	for k, v := range cubes {
+		prevState[k] = v
 	}
 	return prevState
 }
 
-func (grid *Grid) Update(times int) {
-	grid.Expand()
-	grid.prevState = clone(grid.Cubes)
+func (grid Grid) Update(times int) {
+	for i := 0; i < times; i++ {
+		boundaries := grid.GetBoundaries()
 
+		for z := boundaries.Z.Min - 1; z < boundaries.Z.Max + 2; z++ {
+			for y := boundaries.Y.Min - 1; y < boundaries.Y.Max + 2; y++ {
+				for x := boundaries.X.Min - 1; x < boundaries.X.Max + 2; x++ {
+					currentCube := Cube{x, y, z}
+					_, currentCubeIsActive := grid.ActiveCubes[currentCube]
+					neighbours := grid.GetActiveNeighbours(z, y, x)
 
+					if currentCubeIsActive && (len(neighbours) < 2 || len(neighbours) > 3) {
+						delete(grid.ActiveCubes, currentCube)
+						continue
+					}
+
+					if !currentCubeIsActive && (len(neighbours) == 3) {
+						grid.ActiveCubes[currentCube] = struct{}{}
+					}
+				}
+			}
+		}
+
+		grid.prevState = clone(grid.ActiveCubes)
+	}
+}
+
+func (grid Grid) GetActiveNeighbours(z int, y int, x int) []Cube {
+	neighbours := make([]Cube, 0)
+	for i := z - 1; i < z + 2; i++ {
+		for j := y - 1; j < y + 2; j++ {
+			for k := x - 1; k < x + 2; k++ {
+				if i == x && j == y && k == z {
+					// This is the cube being evaluated
+					continue
+				}
+
+				cube := Cube{k, j, i}
+				_, isActive := grid.prevState[cube]
+				if isActive {
+					neighbours = append(neighbours, cube)
+				}
+			}
+		}
+	}
+	return neighbours
+}
+
+func (grid Grid) GetBoundaries() Boundaries {
+	zMin := math.MaxInt32
+	zMax := math.MinInt32
+	yMin := math.MaxInt32
+	yMax := math.MinInt32
+	xMin := math.MaxInt32
+	xMax := math.MinInt32
+	for cube := range grid.ActiveCubes {
+		zMin = int(math.Min(float64(zMin), float64(cube.Z)))
+		zMax = int(math.Max(float64(zMax), float64(cube.Z)))
+		yMin = int(math.Min(float64(yMin), float64(cube.Y)))
+		yMax = int(math.Max(float64(yMax), float64(cube.Y)))
+		xMin = int(math.Min(float64(xMin), float64(cube.X)))
+		xMax = int(math.Max(float64(xMax), float64(cube.X)))
+	}
+	return Boundaries{Limit{zMin, zMax}, Limit{yMin, yMax}, Limit{xMin, xMax}}
+}
+
+type Limit struct {
+	Min, Max int
+}
+
+type Boundaries struct {
+	Z, Y, X Limit
 }
 
 func (grid Grid) CountActiveCubes() int {
-	count := 0
-	for _, z := range grid.Cubes {
-		for _, y := range z {
-			for _, cube := range y {
-				if cube.isActive {
-					count++
-				}
-			}
-		}
-	}
-	return count
-}
-
-func (grid *Grid) Expand() {
-	length := len(grid.Cubes[0])
-	// Expand z-plane
-	grid.Cubes = append(make([][][]Cube, 1), grid.Cubes...)
-	grid.Cubes[0] = make([][]Cube, length+2)
-	for i := range grid.Cubes[0] {
-		grid.Cubes[0][i] = make([]Cube, length+2)
-	}
-	grid.Cubes = append(grid.Cubes, make([][]Cube, length+2))
-	for i := range grid.Cubes[len(grid.Cubes)-1] {
-		grid.Cubes[len(grid.Cubes)-1][i] = make([]Cube, length+2)
-	}
-
-	// Expand xy-plane in all z-planes
-	for z := range grid.Cubes {
-		if len(grid.Cubes[z]) == length {
-			grid.Cubes[z] = append(make([][]Cube, 1), grid.Cubes[z]...)
-			grid.Cubes[z][0] = make([]Cube, length+2)
-			grid.Cubes[z] = append(grid.Cubes[z], make([]Cube, 0))
-			grid.Cubes[z][len(grid.Cubes[z])-1] = make([]Cube, length+2)
-		}
-
-		// Expand X planes where still short
-		for _, zDim := range grid.Cubes {
-			for y, row := range zDim {
-				if len(row) == length {
-					zDim[y] = append(make([]Cube, 1), zDim[y]...)
-					zDim[y] = append(zDim[y], Cube{0,0,0, false})
-				}
-			}
-		}
-	}
-
-	centerZIndex := len(grid.Cubes)/2
-	// Populate all cubes with correct XYZ dimensions
-	for z, plane := range grid.Cubes {
-		for y, row := range plane {
-			for x, cube := range row {
-				// Check if this is a default cube and populate coordinates. Do check for the center cube
-				if cube.X == 0 && cube.Y == 0 && cube.Z == 0 {
-					grid.Cubes[z][y][x] = Cube{x, y, z - centerZIndex, false}
-				}
-			}
-		}
-	}
+	return len(grid.ActiveCubes)
 }
 
 func Test_should_result_in_11_cubes_after_1_cycle(test *testing.T) {
@@ -127,5 +132,24 @@ func Test_should_result_in_11_cubes_after_1_cycle(test *testing.T) {
 
 	if count != 11 {
 		test.Errorf("Expected 11 cubes to be active after 1 cycle. Got: %v", count)
+	}
+}
+
+func Test_should_result_in_112_cubes_after_3_cycles(test *testing.T) {
+	input := ".#.\n..#\n###"
+
+	split := strings.Split(input, "\n")
+	parsed := make([][]string, len(split))
+	for i, line := range split {
+		parsed[i] = strings.Split(line, "")
+	}
+
+	grid := CreateGrid(parsed)
+
+	grid.Update(3)
+	count := grid.CountActiveCubes()
+
+	if count != 112 {
+		test.Errorf("Expected 112 cubes to be active after 3 cycle. Got: %v", count)
 	}
 }
